@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --book-perspective: 1800px;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+    user-select: none;
+  }
+}
+
+/* 3D Apple Book / Map Unfold Mechanics */
+.book-viewport {
+  perspective: var(--book-perspective);
+  perspective-origin: center center;
+  transform-style: preserve-3d;
+}
+
+.book-leaf-left {
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, box-shadow;
+}
+
+.book-leaf-right {
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, box-shadow;
+}
+
+.book-crease-shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.crease-left {
+  right: 0;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.18));
+}
+
+.crease-right {
+  left: 0;
+  background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.18));
+}
+
+.dark .crease-left {
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.5));
+}
+
+.dark .crease-right {
+  background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.5));
+}
+
+/* Apple Map fold origami styling */
+.map-fold-sheet {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 
+              0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: box-shadow 0.5s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
