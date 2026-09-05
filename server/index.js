@@ -1,5 +1,7 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { supabase } from "./supabase.js";
 
 // Import database (initializes tables on import)
 import "./db.js";
@@ -14,6 +16,25 @@ import profileRoutes from "./routes/profile.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// test
+
+app.get("/api/test-supabase", async (req, res) => {
+    const { data, error } = await supabase
+        .from("problems")
+        .select("*");
+
+    if (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            error: error.message
+        });
+    }
+
+    res.json(data);
+});
+
 
 // Middleware
 app.use(cors({
