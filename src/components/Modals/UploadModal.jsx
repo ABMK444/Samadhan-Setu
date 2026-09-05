@@ -7,9 +7,9 @@ import { useToast } from "../ToastContext";
 import { useApp } from "../../context/AppContext";
 import { uploadProblem } from "../../api/problems.js";
 
-export default function UploadModal({ isOpen, onClose, role = "Citizen" }) {
+export default function UploadModal({ isOpen, onClose, role = "Citizen" , }) {
   const { addToast } = useToast();
-  const { addProblem } = useApp();
+  const { refreshFromDb } = useApp();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -74,6 +74,7 @@ export default function UploadModal({ isOpen, onClose, role = "Citizen" }) {
     console.log("Uploading problem to Supabase:", problemData);
 
     const created = await uploadProblem(problemData);
+    await refreshFromDb();
 
     console.log("Supabase created problem:", created);
 

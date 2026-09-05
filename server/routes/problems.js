@@ -157,69 +157,85 @@ router.post("/", async (req, res) =>  {
 });
 
 // POST /api/problems/:id/complete — Mark complete and archive to history
-router.post("/:id/complete", authMiddleware, (req, res) => {
+// POST /api/problems/:id/complete — Mark problem as complete
+router.post("/:id/complete", async (req, res) => {
   try {
     const rawId = req.params.id;
-    const dbId = parseInt(rawId.replace("prob-", ""));
-    const { orgType, orgName, partnerIndustry, summary, peopleImpacted, team } = req.body;
+    const dbId = parseInt(rawId.replace("prob-", ""), 10);
 
-    const prob = db.findOne("problems", (p) => p.id === dbId);
-    if (!prob) return res.status(404).json({ error: "Problem not found." });
+    if (isNaN(dbId)) {
+      return res.status(400).json({
+        error: "Invalid problem ID."
+      });
+    }
 
-    db.update("problems", (p) => p.id === dbId, (p) => ({
-      ...p,
-      status: "Completed",
-      progress: 100,
-    }));
+    const {
+      orgType,
+      orgName,
+      partnerIndustry,
+      summary,
+      peopleImpacted,
+      team
+    } = req.body;
 
-    const historyRecord = db.insert("history", {
-      problem_id: dbId,
-      title: prob.title,
-      district: prob.district + (prob.address ? ` (${prob.address})` : ""),
-      category: prob.category,
-      organization_type: orgType || req.user.role || "University",
-      organization_name: orgName || req.user.name || "BIT Mesra Technical Team",
-      partner_industry: partnerIndustry || "Jharkhand CSR Consortium",
-      summary: summary || prob.description || "Issue fully resolved on ground.",
-      people_impacted: peopleImpacted || 500,
-      completed_by_id: req.user.id,
-      completed_at: new Date().toISOString(),
-      team: team || [
-        {
-          name: req.body.studentName || "Aman Verma",
-          age: 22,
-          role: "Student Project Lead",
-          course: "B.Tech Civil & Environmental Eng.",
-          work: "Technical verification & on-site supervision",
-          hours_logged: 45,
-        },
-        {
-          name: req.body.workerName || "Rameshwar Munda",
-          age: 38,
-          role: "Field Specialist Technician",
-          course: "Jharkhand Technical Trade Certified",
-          work: "Civil execution & structural installation",
-          hours_logged: 60,
-        },
-      ],
-      timeline: (prob.updates_list || []).map((u) => ({
-        time: u.timestamp,
-        note: u.note,
-      })),
+    // Find the problem in Supabase
+    const { data: problem, error: findError } = await supabase
+      .from("problems")
+      .select("*")
+      .eq("problem_id", dbId)
+      .single();
+
+    if (findError || !problem) {
+      console.error("Find problem error:", findError);
+
+      return res.status(404).json({
+        error: "Problem not found."
+      });
+    }
+
+    // Mark problem as completed in Supabase
+    const { data: updatedProblem, error: updateError } = await supabase
+      .from("problems")
+      .update({
+        status: "Completed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("problem_id", dbId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Complete problem update error:", updateError);
+
+      return res.status(500).json({
+        error: updateError.message
+      });
+    }
+
+    // Return the completed problem
+    res.json({
+      success: true,
+      problem: {
+        id: "prob-" + updatedProblem.problem_id,
+        dbId: updatedProblem.problem_id,
+        title: updatedProblem.problem_title,
+        description: updatedProblem.description,
+        category: updatedProblem.ai_category,
+        subCategory: updatedProblem.sub_category,
+        location: updatedProblem.location,
+        severity: updatedProblem.severity,
+        status: updatedProblem.status,
+        createdAt: updatedProblem.date_submitted,
+        updatedAt: updatedProblem.updated_at
+      }
     });
 
-    db.insert("notifications", {
-      user_id: prob.uploader_id,
-      title: `Archived to History: ${prob.title}`,
-      message: `Successfully resolved by ${orgName || req.user.name}.`,
-      type: "history",
-      is_read: 0,
-    });
-
-    res.json({ success: true, historyRecord });
   } catch (err) {
     console.error("Complete problem error:", err);
-    res.status(500).json({ error: "Failed to complete problem." });
+
+    res.status(500).json({
+      error: "Failed to complete problem."
+    });
   }
 });
 

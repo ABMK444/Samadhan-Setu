@@ -13,7 +13,7 @@ export function AppProvider({ children }) {
     const saved = localStorage.getItem("samadhansetu_problems");
     return saved ? JSON.parse(saved) : [];
   });
-
+  
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem("samadhansetu_history_v2");
     return saved ? JSON.parse(saved) : [];
