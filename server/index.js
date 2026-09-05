@@ -18,6 +18,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // test
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  next();
+});
 
 app.get("/api/test-supabase", async (req, res) => {
     const { data, error } = await supabase

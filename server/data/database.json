@@ -31,6 +31,54 @@
       "reports_submitted": 0,
       "active_projects": 0,
       "created_at": "2026-09-04T08:12:34.945Z"
+    },
+    {
+      "id": 3,
+      "name": "3333333",
+      "email": "3333333@samadhansetu.in",
+      "password_hash": "$2a$10$/Ry0euVoVPHxZ0YGX4txaOpeVxmSbKVqv1rbYh.zcTveqHQUvRso.",
+      "role": "Citizen",
+      "org_name": "",
+      "district": "",
+      "phone": "",
+      "badge": "Panchayat Volunteer",
+      "address": "",
+      "impact_points": 100,
+      "reports_submitted": 0,
+      "active_projects": 0,
+      "created_at": "2026-09-05T18:19:49.279Z"
+    },
+    {
+      "id": 4,
+      "name": "yupp",
+      "email": "nopeee@samadhansetu.in",
+      "password_hash": "$2a$10$ZtjqXs7xKonGHZ1LuCpj5eR6qdi4Y8LV2phOBoEylAOYsbigvuqrO",
+      "role": "Citizen",
+      "org_name": "",
+      "district": "",
+      "phone": "",
+      "badge": "Panchayat Volunteer",
+      "address": "",
+      "impact_points": 100,
+      "reports_submitted": 0,
+      "active_projects": 0,
+      "created_at": "2026-09-05T18:20:07.461Z"
+    },
+    {
+      "id": 5,
+      "name": "333333333333",
+      "email": "333333333333@samadhansetu.in",
+      "password_hash": "$2a$10$CpobBLfwtoNm3XkVV1CvH.xa4B5teehwBg80DAp2lk.dhjO1BZcEG",
+      "role": "Citizen",
+      "org_name": "",
+      "district": "",
+      "phone": "",
+      "badge": "Panchayat Volunteer",
+      "address": "",
+      "impact_points": 100,
+      "reports_submitted": 0,
+      "active_projects": 0,
+      "created_at": "2026-09-05T18:25:00.530Z"
     }
   ],
   "problems": [],
@@ -54,6 +102,33 @@
       "type": "info",
       "is_read": 0,
       "created_at": "2026-09-04T08:12:34.946Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "title": "Welcome to SamadhanSetu Jharkhand! 🎉",
+      "message": "Your Citizen account has been created. Start reporting problems or collaborating!",
+      "type": "info",
+      "is_read": 0,
+      "created_at": "2026-09-05T18:19:49.287Z"
+    },
+    {
+      "id": 4,
+      "user_id": 4,
+      "title": "Welcome to SamadhanSetu Jharkhand! 🎉",
+      "message": "Your Citizen account has been created. Start reporting problems or collaborating!",
+      "type": "info",
+      "is_read": 0,
+      "created_at": "2026-09-05T18:20:07.467Z"
+    },
+    {
+      "id": 5,
+      "user_id": 5,
+      "title": "Welcome to SamadhanSetu Jharkhand! 🎉",
+      "message": "Your Citizen account has been created. Start reporting problems or collaborating!",
+      "type": "info",
+      "is_read": 0,
+      "created_at": "2026-09-05T18:25:00.538Z"
     }
   ]
 }

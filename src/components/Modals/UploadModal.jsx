@@ -5,6 +5,7 @@ import AnimatedButton from "../AnimatedButton";
 import MapLocationPicker from "../MapLocationPicker";
 import { useToast } from "../ToastContext";
 import { useApp } from "../../context/AppContext";
+import { uploadProblem } from "../../api/problems.js";
 
 export default function UploadModal({ isOpen, onClose, role = "Citizen" }) {
   const { addToast } = useToast();
@@ -29,63 +30,90 @@ export default function UploadModal({ isOpen, onClose, role = "Citizen" }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) {
-      addToast({
-        title: "Missing Title",
-        message: "Please provide a clear title for the problem.",
-        type: "warning",
-      });
-      return;
-    }
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setIsSubmitting(true);
+  if (!formData.title.trim()) {
+    addToast({
+      title: "Missing Title",
+      message: "Please provide a clear title for the problem.",
+      type: "warning",
+    });
+    return;
+  }
 
-    const finalCategory =
-      formData.category === "Other" && formData.otherCategoryText.trim()
-        ? `Other (${formData.otherCategoryText.trim()})`
-        : formData.category;
+  setIsSubmitting(true);
 
-    setTimeout(() => {
-      const created = addProblem({
-        title: formData.title,
-        category: finalCategory,
-        district: formData.district,
-        address: formData.address,
-        lat: formData.lat,
-        lng: formData.lng,
-        priority: formData.priority,
-        description: formData.description || "Field problem reported for university/industry intervention.",
-        peopleImpacted: formData.peopleAffected,
-        photoAttached: !!fileSelected,
-        reportedByRole: role,
-      });
+  const finalCategory =
+    formData.category === "Other" && formData.otherCategoryText.trim()
+      ? `Other (${formData.otherCategoryText.trim()})`
+      : formData.category;
 
-      setIsSubmitting(false);
-      addToast({
-        title: "Problem Registered on Civic Grid! 🚀",
-        message: `"${formData.title}" is now visible in Explore Problems & measured in statistics.`,
-        type: "success",
-      });
+  try {
+    const problemData = {
+      title: formData.title,
+      description:
+        formData.description ||
+        "Field problem reported for university/industry intervention.",
 
-      // Reset form
-      setFormData({
-        title: "",
-        category: "Infrastructure",
-        otherCategoryText: "",
-        district: "Ranchi",
-        address: "Kanke Road, Ranchi",
-        lat: 23.4021,
-        lng: 85.3214,
-        priority: "Medium",
-        description: "",
-        peopleAffected: "500+",
-      });
-      setFileSelected(null);
-      onClose();
-    }, 600);
-  };
+      category: finalCategory,
+
+      subCategory: null,
+
+      district: formData.district,
+      address: formData.address,
+
+      locationLat: formData.lat,
+      locationLng: formData.lng,
+
+      severity: formData.priority,
+
+      images: null,
+    };
+
+    console.log("Uploading problem to Supabase:", problemData);
+
+    const created = await uploadProblem(problemData);
+
+    console.log("Supabase created problem:", created);
+
+    setIsSubmitting(false);
+
+    addToast({
+      title: "Problem Registered",
+      message: `"${formData.title}" has been successfully uploaded.`,
+      type: "success",
+    });
+
+    // Reset form
+    setFormData({
+      title: "",
+      category: "Infrastructure",
+      otherCategoryText: "",
+      district: "Ranchi",
+      address: "Kanke Road, Ranchi",
+      lat: 23.4021,
+      lng: 85.3214,
+      priority: "Medium",
+      description: "",
+      peopleAffected: "500+",
+    });
+
+    setFileSelected(null);
+    onClose();
+
+  } catch (error) {
+    console.error("Supabase upload failed:", error);
+
+    setIsSubmitting(false);
+
+    addToast({
+      title: "Upload Failed",
+      message: error.message || "Failed to upload the problem.",
+      type: "error",
+    });
+  }
+};
 
   return (
     <AnimatePresence>

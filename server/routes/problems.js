@@ -1,184 +1,158 @@
 import { Router } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { supabase } from "../supabase.js";
 
 const router = Router();
 
 // GET /api/problems — List all problems
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const problems = db.get("problems");
-    // Sort descending by created_at
-    const sorted = [...problems].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const { data: problems, error } = await supabase
+      .from("problems")
+      .select("*")
+      .order("date_submitted", { ascending: false });
 
-    const result = sorted.map((p) => ({
-      id: "prob-" + p.id,
-      dbId: p.id,
-      title: p.title,
+    if (error) {
+      console.error("Get problems error:", error);
+
+      return res.status(500).json({
+        error: error.message
+      });
+    }
+
+    const result = problems.map((p) => ({
+      id: "prob-" + p.problem_id,
+      dbId: p.problem_id,
+
+      title: p.problem_title,
       description: p.description,
-      category: p.category,
-      district: p.district,
-      address: p.address,
-      locationLat: p.location_lat,
-      locationLng: p.location_lng,
-      uploaderId: p.uploader_id,
-      uploaderName: p.uploader_name,
-      uploaderRole: p.uploader_role,
+
+      category: p.ai_category,
+      subCategory: p.sub_category,
+
+      location: p.location,
+
+      uploaderId: p.user_id,
+
+      severity: p.severity,
       status: p.status,
-      progress: p.progress,
-      votes: p.votes,
-      createdAt: new Date(p.created_at).toLocaleString("en-IN", {
+
+      createdAt: new Date(p.date_submitted).toLocaleString("en-IN", {
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       }),
-      updatesList: (p.updates_list || []).map((u) => ({
-        timestamp: u.timestamp || new Date(u.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        percentage: u.percentage,
-        text: u.note || u.text,
-        author: u.worker_name || u.author,
-      })),
     }));
 
-    res.json({ problems: result });
+    res.json({
+      problems: result
+    });
+
   } catch (err) {
     console.error("Get problems error:", err);
-    res.status(500).json({ error: "Failed to fetch problems." });
+
+    res.status(500).json({
+      error: "Failed to fetch problems."
+    });
   }
 });
 
 // POST /api/problems — Upload new problem
-router.post("/", authMiddleware, (req, res) => {
+// POST /api/problems — Upload new problem
+router.post("/", async (req, res) =>  {
   try {
-    const { title, description, category, district, address, locationLat, locationLng } = req.body;
-    const user = db.findOne("users", (u) => u.id === req.user.id);
-
-    if (!title) {
-      return res.status(400).json({ error: "Problem title is required." });
-    }
-
-    const initialUpdate = {
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      percentage: 0,
-      note: "Problem registered and pinned on Jharkhand civic grid.",
-      worker_name: user ? user.name : "Citizen",
-      created_at: new Date().toISOString(),
-    };
-
-    const newProblem = db.insert("problems", {
+    const {
       title,
-      description: description || "",
-      category: category || "Other",
-      district: district || "",
-      address: address || "",
-      location_lat: locationLat || null,
-      location_lng: locationLng || null,
-      uploader_id: user ? user.id : req.user.id,
-      uploader_name: user ? user.name : req.user.name,
-      uploader_role: user ? user.role : req.user.role,
-      status: "Reported",
-      progress: 0,
-      votes: 1,
-      updates_list: [initialUpdate],
-    });
+      description,
+      category,
+      district,
+      address,
+      locationLat,
+      locationLng,
+      images,
+      severity,
+      subCategory
+    } = req.body;
 
-    if (user) {
-      db.update("users", (u) => u.id === user.id, (u) => ({
-        ...u,
-        reports_submitted: (u.reports_submitted || 0) + 1,
-        impact_points: (u.impact_points || 0) + 20,
-      }));
+    // Validate title
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        error: "Problem title is required."
+      });
     }
 
-    db.insert("notifications", {
-      user_id: user ? user.id : req.user.id,
-      title: `New Problem Reported: ${title}`,
-      message: `Location: ${district || "Jharkhand"} (${address || "Pinned on Map"}) • Category: ${category || "General"}`,
-      type: "problem",
-      is_read: 0,
+    // Build location string
+    let location = "";
+
+    if (district) {
+      location += district;
+    }
+
+    if (address) {
+      location += location ? `, ${address}` : address;
+    }
+
+    if (locationLat != null && locationLng != null) {
+      location += location
+        ? ` (${locationLat}, ${locationLng})`
+        : `(${locationLat}, ${locationLng})`;
+    }
+
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from("problems")
+      .insert({
+        problem_title: title.trim(),
+        description: description || "",
+        images: images || null,
+        location: location || null,
+        user_id: null,
+        date_submitted: new Date().toISOString(),
+        ai_category: category || "Other",
+        sub_category: subCategory || null,
+        severity: severity || null,
+        status: "Reported"
+      })
+      .select()
+      .single();
+
+    // Supabase error
+    if (error) {
+      console.error("Supabase error while creating problem:", error);
+
+      return res.status(500).json({
+        error: error.message
+      });
+    }
+
+    // Return the newly-created problem
+    res.status(201).json({
+      success: true,
+      problem: {
+        id: "prob-" + data.problem_id,
+        dbId: data.problem_id,
+        title: data.problem_title,
+        description: data.description,
+        category: data.ai_category,
+        subCategory: data.sub_category,
+        location: data.location,
+        uploaderId: data.user_id,
+        severity: data.severity,
+        status: data.status,
+        images: data.images,
+        createdAt: data.date_submitted
+      }
     });
 
-    res.status(201).json({
-      problem: {
-        id: "prob-" + newProblem.id,
-        dbId: newProblem.id,
-        title: newProblem.title,
-        description: newProblem.description,
-        category: newProblem.category,
-        district: newProblem.district,
-        address: newProblem.address,
-        locationLat: newProblem.location_lat,
-        locationLng: newProblem.location_lng,
-        uploaderId: newProblem.uploader_id,
-        uploaderName: newProblem.uploader_name,
-        uploaderRole: newProblem.uploader_role,
-        status: newProblem.status,
-        progress: newProblem.progress,
-        votes: newProblem.votes,
-        createdAt: new Date(newProblem.created_at).toLocaleString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        updatesList: newProblem.updates_list.map((u) => ({
-          timestamp: u.timestamp,
-          percentage: u.percentage,
-          text: u.note,
-          author: u.worker_name,
-        })),
-      },
-    });
   } catch (err) {
     console.error("Create problem error:", err);
-    res.status(500).json({ error: "Failed to create problem." });
-  }
-});
 
-// PATCH /api/problems/:id/progress — Update progress
-router.patch("/:id/progress", authMiddleware, (req, res) => {
-  try {
-    const rawId = req.params.id;
-    const dbId = parseInt(rawId.replace("prob-", ""));
-    const { percentage, note, workerName } = req.body;
-
-    const prob = db.findOne("problems", (p) => p.id === dbId);
-    if (!prob) return res.status(404).json({ error: "Problem not found." });
-
-    const isCompleted = percentage >= 100;
-    const newStatus = isCompleted ? "Completed" : percentage > 0 ? "In Progress" : "Reported";
-    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const newUpdate = {
-      timestamp: timeStr,
-      percentage,
-      note: note || "",
-      worker_name: workerName || req.user.name,
-      created_at: new Date().toISOString(),
-    };
-
-    db.update("problems", (p) => p.id === dbId, (p) => ({
-      ...p,
-      progress: percentage,
-      status: newStatus,
-      updates_list: [...(p.updates_list || []), newUpdate],
-    }));
-
-    db.insert("notifications", {
-      user_id: prob.uploader_id,
-      title: isCompleted ? "Problem Marked as 100% Completed! 🎉" : `Progress Update: ${percentage}%`,
-      message: `${note} (${workerName || req.user.name})`,
-      type: isCompleted ? "completed" : "update",
-      is_read: 0,
+    res.status(500).json({
+      error: "Failed to create problem."
     });
-
-    res.json({ success: true, status: newStatus, progress: percentage });
-  } catch (err) {
-    console.error("Update progress error:", err);
-    res.status(500).json({ error: "Failed to update progress." });
   }
 });
 
